@@ -12,7 +12,7 @@
 #define gameFPS 500
 #define getDecimal(x) (x - (int)x)
 #define sgn(x) (x < 0 ? -1 : 1)
-#define test true // if true then the program will do 2d raycasting instead of 3d
+#define test 1 // if true then the program will do 2d raycasting instead of 3d
 
 using namespace std;
 
@@ -51,19 +51,30 @@ const int map[WIDTHGAME][HEIGHTGAME] = {
 }; 
 
 
-int whatBlock(double x, double y){
+int whatBlock(double x, double y, double xheading, double yheading){
     // given some x and y coordinate return the block that the coordinate is in
-    double blockX = (x);
-    double blockY = (y);
-    for (int i = 0; i < WIDTHGAME; i++){
-        for (int j = 0; j < HEIGHTGAME; j++){
-            if (blockX >= i-1 && blockX < i+1 && blockY >= j-1 && blockY < j+1){
-                return map[i][j];
-            }
+    // only subtract to the non integer number
+    // calculate the x and y coordinate of the block that the ray is in
+    int xBlock = (int)(x + xheading/3); // take a small step in the x direction
+    int yBlock = (int)(y + yheading/3); // take a small step in the y direction
+    for(int i = 0; i < HEIGHTGAME; i++){
+        if (yBlock > i && yBlock < i + 1){
+            yBlock = i;   
         }
     }
+    for(int i = 0; i < WIDTHGAME; i++){
+        if (xBlock > i && xBlock < i + 1){
+            xBlock = i;   
+        }
+    }
+    
+    // return the block that the ray is in
+
+
+    return map[xBlock][yBlock];
 }
 
+// 0 = black, 1 = gray, 2 = red, 3 = orange, 4 = yellow, 5 = green, 6 = blue, 7 = violet, 8 = purple, 9 = pink, 10 = brown
 Color colorNum[11] = {
     BLACK, 
     GRAY, 
@@ -79,22 +90,23 @@ Color colorNum[11] = {
 };
 
 int main () {
+    int count = 0; // counts the iterations of the raycasting loop
     double playerX = 2.0;
     double playerY = 2.0;
     double playerA = 0; 
     double fov = FOV; // This is how many degrees of freedom the view has 
-
-    cout << "Beginning program!\n"; 
-    InitWindow(screenWidth, screenHeight, "Raylib Pseudo 3d shader");
+ 
+    InitWindow(screenWidth, screenHeight, "Raycastuh");
     SetTargetFPS(gameFPS);
 
     while (WindowShouldClose() == false){
-        // Update the player position
+        // Making sure the angle isnt greater than the threshold set
         if (playerA > 2*3.14159){
             playerA -= 2*3.14159;
         } else if (playerA < 0){
             playerA += 2*3.14159;
         }
+        // Player movement 
         if (IsKeyDown(KEY_W)){
             playerX += cos(playerA) * 0.01;
             playerY += sin(playerA) * 0.01; 
@@ -111,7 +123,6 @@ int main () {
             playerX += cos(playerA + 3.14159/2.0) * 0.01;
             playerY += sin(playerA + 3.14159/2.0) * 0.01;
         }
-
         if (IsKeyDown(KEY_LEFT)){
             playerA -= 0.05; 
         }
@@ -119,13 +130,6 @@ int main () {
             playerA += 0.05; 
         }
 
-        // FOV changer 
-        if (IsKeyDown(KEY_UP)){
-            fov += 0.05; 
-        }   
-        if (IsKeyDown(KEY_DOWN)){
-            fov -= 0.05; 
-        }
 
         BeginDrawing();
         ClearBackground(WHITE);
@@ -149,74 +153,121 @@ int main () {
                 // display player
                 DrawCircle(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, 5, RED);
         }
+
         // start a for loop for each column of pixels on the screen
-        int rayCount = 500000; // its usually screenWidth but this is for testing purposes
+        int rayCount = 500; // its usually screenWidth but this is for testing purposes
         for (int i = 0; i < rayCount; i++){
             // Calculate the ray angle by removing half of the FOV from the player angle and then slowly adding the FOV to the ray angle
+            count++;
             double rayAngle = playerA - fov/2.0 + fov * (double)i / (double)rayCount;
             double dY = sin(rayAngle);
             double dX = cos(rayAngle);
 
-            // Draw the dx line 
-            // DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, (playerX + dX)*screenWidth/WIDTHGAME, (playerY + dY)*screenHeight/HEIGHTGAME, WHITE);
-
+            // Draw the dx lne 
             bool hitWall = false;
             double distance = 0.0;
             double rayX = playerX;
             double rayY = playerY;
             double xPercent = 0.0;
             double yPercent = 0.0;
+            
+            // make sure we dont divide by 0
+            if (dX == 0){
+                continue; 
+            }
+            if (dY == 0){
+                continue; 
+            }
+
             double sX = sqrt (1 + (dY*dY)/(dX*dX));
             double sY = sqrt (1 + (dX*dX)/(dY*dY));
             double rayLengthX = 0.0;
             double rayLengthY = 0.0;
-            double xInt = 0.0;
-            double yInt = 0.0;
+            double xRay[2] = {0.0, 0.0};
+            double yRay[2] = {0.0, 0.0};
 
+            if (dX < 0){
+                rayLengthX = sX*abs(rayX - floor(rayX));
+                // place the x on the next integer
+                xRay[0] = floor(rayX); 
+                xRay[1] = rayY - dY/dX * abs(rayX - floor(rayX));
+            }
             if (dX > 0){
-                xPercent = 1.0 - (playerX - (int)playerX);
-            }  else {
-                xPercent = playerX - (int)playerX;
+                rayLengthX = sX*abs(rayX - ceil(rayX));
+                // place the x on the next integer
+                xRay[0] = ceil(rayX); 
+                xRay[1] = rayY + dY/dX * abs(rayX - ceil(rayX));
+            }
+
+            if (dY < 0){
+                rayLengthY = sY*abs(rayY - floor(rayY));
+                // place the y on the next integer
+                yRay[0] = rayX - dX/dY * abs(rayY - floor(rayY));
+                yRay[1] = floor(rayY);
             }
             if (dY > 0){
-                yPercent = 1.0 - (playerY - (int)playerY);
-            } else {
-                yPercent = playerY - (int)playerY;
+                rayLengthY = sY*abs(rayY - ceil(rayY));
+                // place the y on the next integer
+                yRay[0] = rayX + dX/dY * abs(rayY - ceil(rayY));
+                yRay[1] = ceil(rayY);
             }
 
-            // increment rayX in the right direciton to an integer location
-
-            rayLengthX = sX * xPercent;
-            rayLengthY = sY * yPercent;
-
+            // iterate the x 
+            while (!hitWall && dX != 0){
+                xRay[0] += sgn(dX);
+                xRay[1] += dY/dX * sgn(dX); 
+                rayLengthX += sX;
+                // check if out of bounds if so then exit
+                if (xRay[0] < 0 || xRay[0] > WIDTHGAME || xRay[1] < 0 || xRay[1] > HEIGHTGAME){
+                    hitWall = true;
+                    continue; 
+                }
+                
+                
+            }
+            // iterate the y
+            hitWall = false;
+            while (!hitWall && dY != 0){
+                yRay[0] += dX/dY * sgn(dY);
+                yRay[1] += sgn(dY);
+                rayLengthY += sY;
+                // check if out of bounds if so then exit
+                if (yRay[0] < 0 || yRay[0] > WIDTHGAME || yRay[1] < 0 || yRay[1] > HEIGHTGAME){
+                    hitWall = true;
+                    continue; 
+                }
+                if (whatBlock(yRay[0], yRay[1], dX, dY) > 0 || yRay[1] < 0 || yRay[1] > HEIGHTGAME){
+                    hitWall = true;
+                    continue; 
+                }
+            }
             if (rayLengthX < rayLengthY){
-                rayX += dX > 0 ? 1*xPercent : -1*xPercent;
-                xInt = rayX;
-                yInt = rayY + (rayX - playerX) * dY/dX;
+                distance = rayLengthX;
+                rayX = xRay[0];
+                rayY = xRay[1];
             } else {
-                rayY += dY > 0 ? 1*yPercent : -1*yPercent;
-                xInt =  rayX + (rayY - playerY) * dX/dY;
-                yInt = rayY;
+                distance = rayLengthY;
+                rayX = yRay[0];
+                rayY = yRay[1];
             }
 
-            
-            // draw ray
-            // DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, xInt*screenWidth/WIDTHGAME, yInt*screenHeight/HEIGHTGAME, WHITE);
-
-            // // display the values 
-            // DrawRectangle(0, 0, 200, 300, BLACK);
-            // DrawText(TextFormat("xPercent: %f", xPercent), 10, 10, 20, WHITE);
-            // DrawText(TextFormat("yPercent: %f", yPercent), 10, 30, 20, WHITE);
-            // DrawText(TextFormat("dx: %f", dX), 10, 50, 20, WHITE);
-            // DrawText(TextFormat("dy: %f", dY), 10, 70, 20, WHITE);
-            // DrawText(TextFormat("rayLengthX: %f", rayLengthX), 10, 90, 20, WHITE);
-            // DrawText(TextFormat("rayLengthY: %f", rayLengthY), 10, 110, 20, WHITE);
-
+            // Draw the ray
+            DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, rayX*screenWidth/WIDTHGAME, rayY*screenHeight/HEIGHTGAME, WHITE);
+            // DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, (playerX + dX * 10)*screenWidth/WIDTHGAME, (playerY + dY * 10)*screenHeight/HEIGHTGAME, RED);
+            // DrawCircle(xRay[0]*screenWidth/WIDTHGAME, xRay[1]*screenHeight/HEIGHTGAME, 5, GREEN);
+            DrawCircle(yRay[0]*screenWidth/WIDTHGAME, yRay[1]*screenHeight/HEIGHTGAME, 5, BLUE);
+            // draw cicle at predicted point
+            // DrawCircle((int)(xRay[0]+dX)*screenWidth/WIDTHGAME, (int)(xRay[1])*screenHeight/HEIGHTGAME, 5, RED);
             
 
-            // DrawCircle (xInt*screenWidth/WIDTHGAME, yInt*screenHeight/HEIGHTGAME, 5, BLUE);
-            // display dx and dyt valueds and a rectangle behind it as a background
-            
+            // 3d rendering
+            if (!test){
+                int ceiling = (screenHeight/2.0) - screenHeight/(distance * cos(rayAngle - playerA));
+                int floor = screenHeight - ceiling;
+                DrawRectangle(i*screenWidth/rayCount, 0, screenWidth/rayCount, ceiling, BLACK);
+                DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, colorNum[map[(int)rayX][(int)rayY]]);
+                DrawRectangle(i*screenWidth/rayCount, floor, screenWidth/rayCount, screenHeight - floor, BLACK);
+            }
 
        }
         // Display the FPS currently 
