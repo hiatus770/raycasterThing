@@ -159,8 +159,6 @@ int whatBlockNumber(double x, double y, double xheading, double yheading){
     }
 }
 
-
-
 int main () {
     int count = 0; // counts the iterations of the raycasting loop
     double playerX = 3.0;
@@ -399,9 +397,7 @@ int main () {
 
             DrawRectangle(i*screenWidth/rayCount, 0, screenWidth/rayCount, ceiling, BLACK);
             DrawRectangle(i*screenWidth/rayCount, floor, screenWidth/rayCount, screenHeight - floor, BROWN);
-            // Draw the ray
-        
-
+ 
        }
         // Display the FPS currently 
         DrawFPS(10, 10);
