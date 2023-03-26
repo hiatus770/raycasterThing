@@ -394,7 +394,7 @@ int main () {
             if (rayLengthX > rayLengthY){
                  DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, whatBlock(rayX, rayY, dX, dY));
             } else {
-                 DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY),-0.2));
+                 DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY),-0.4));
             }
 
             DrawRectangle(i*screenWidth/rayCount, 0, screenWidth/rayCount, ceiling, BLACK);
