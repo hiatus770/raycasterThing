@@ -8,11 +8,12 @@
 #define toRadian(x) (x*3.14159/180.0)
 #define brightMax -0.1
 #define brightMin -0.9
-#define gameFPS 200
+#define gameFPS 180
 #define getDecimal(x) (x - (int)x)
 #define sgn(x) (x < 0 ? -1 : 1)
 #define test 1 // if true then the program will do 2d raycasting instead of 3d
 #define FOV toRadian(60)
+#include "maps.h" // this is the file that contains the map and other textures 
 
 using namespace std;
 
@@ -20,7 +21,6 @@ const int screenWidth = 1600;
 const int screenHeight = 800;
 
 /*TODO LIST 
-- implement a better ray block finding algorithm that is O(1)
 - implement a texture mapping thing
 - implement a better brightness for the walls
 - fix the fisheye lens by spreading out where the rays are shot*/
@@ -37,18 +37,29 @@ double brightness(double rayDist) {
     }
 }
 
-const int map[WIDTHGAME][HEIGHTGAME] = { 
-    {1,3,1,2,1,2,1,3,1,1},
-    {1,0,0,0,0,0,0,0,0,2},
-    {3,0,0,0,0,0,0,0,0,1},
-    {1,0,0,0,0,0,0,0,0,2},
-    {3,0,0,0,0,2,0,0,0,1},
-    {1,0,0,0,0,0,0,0,0,2},
-    {3,0,0,0,0,0,0,0,0,1},
-    {1,0,0,0,0,0,0,0,0,2},
-    {3,0,0,0,0,0,0,0,0,1},
-    {1,1,1,1,1,3,1,4,1,2}
-}; 
+// 20 by 20
+// const int map[WIDTHGAME][HEIGHTGAME] = { 
+//     {1,3,1,2,1,2,1,3,1,1,1,3,1,2,1,2,1,3,1,1},
+//     {1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2},
+//     {3,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1},
+//     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
+//     {3,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2,0,0,0,1},
+//     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+//     {1,1,1,1,1,3,1,4,1,0,0,1,1,1,1,3,1,4,1,2},
+//     {1,3,1,2,1,2,1,3,1,0,0,3,1,2,1,2,1,3,1,1},
+//     {1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0}
+// }
 
 // 0 = black, 1 = gray, 2 = red, 3 = orange, 4 = yellow, 5 = green, 6 = blue, 7 = violet, 8 = purple, 9 = pink, 10 = brown
 Color colorNum[11] = {
@@ -65,6 +76,109 @@ Color colorNum[11] = {
     BROWN
 };
 
+int whatX(double x, double y, double xheading, double yheading){
+    // given some x and y coordinate return the block that the coordinate is in
+    // only subtract to the non integer number
+    // calculate the x and y coordinate of the block that the ray is in
+    int blockX = 0; 
+    int blockY = 0; 
+    if (abs((int)x - x) < 0.0000001 && xheading > 0){
+        // x is an integer 
+        blockX = (int)x; 
+        for(int i = 0; i < HEIGHTGAME; i++){
+            if (y >= i && y < i+1){
+                blockY = i; 
+                break; 
+            }
+        }
+        return blockX; 
+    } else if (abs((int)x - x) < 0.0000001 && xheading < 0){
+        blockX = (int)(x)-1; 
+        for(int i = 0; i < HEIGHTGAME; i++){
+            if (y >= i && y < i+1){
+                blockY = i; 
+                break; 
+            }
+        }
+        return blockX; 
+    } else if (abs((int)y - y) < 0.0000001 && yheading < 0) {
+        blockY = (int)(y)-1; 
+        for(int i = 0; i < WIDTHGAME; i++){
+            if (x >= i && x < i+1){
+                blockX = i; 
+                break; 
+            }
+        }  
+        return blockX; 
+    } else {
+        // y is an intenger
+        blockY = (int)(y); 
+        for(int i = 0; i < WIDTHGAME; i++){
+            if (x >= i && x < i+1){
+                blockX = i; 
+                break; 
+            }
+        }  
+        return blockX; 
+    }
+}
+
+int whatY(double x, double y, double xheading, double yheading){
+    // given some x and y coordinate return the block that the coordinate is in
+    // only subtract to the non integer number
+    // calculate the x and y coordinate of the block that the ray is in
+    int blockX = 0; 
+    int blockY = 0; 
+    if (abs((int)x - x) < 0.0000001 && xheading > 0){
+        // x is an integer 
+        blockX = (int)x; 
+        for(int i = 0; i < HEIGHTGAME; i++){
+            if (y >= i && y < i+1){
+                blockY = i; 
+                break; 
+            }
+        }
+        return blockY; 
+    } else if (abs((int)x - x) < 0.0000001 && xheading < 0){
+        blockX = (int)(x)-1; 
+        for(int i = 0; i < HEIGHTGAME; i++){
+            if (y >= i && y < i+1){
+                blockY = i; 
+                break; 
+            }
+        }
+        return blockY; 
+    } else if (abs((int)y - y) < 0.0000001 && yheading < 0) {
+        blockY = (int)(y)-1; 
+        for(int i = 0; i < WIDTHGAME; i++){
+            if (x >= i && x < i+1){
+                blockX = i; 
+                break; 
+            }
+        }  
+        return blockY; 
+    } else {
+        // y is an intenger
+        blockY = (int)(y); 
+        for(int i = 0; i < WIDTHGAME; i++){
+            if (x >= i && x < i+1){
+                blockX = i; 
+                break; 
+            }
+        }  
+        return blockY; 
+    }
+}
+
+/**
+ * @brief Calculates what block the ray is intersecting given some information
+ * 
+ * @param x    The x coordinate of the ray
+ * @param y     The y coordinate of the ray
+ * @param xheading  The DX of the ray
+ * @param yheading  The DY of the ray
+ * @return Color  This is the value of the color of the block that the ray is in
+ */
 Color whatBlock(double x, double y, double xheading, double yheading){
     // given some x and y coordinate return the block that the coordinate is in
     // only subtract to the non integer number
@@ -112,6 +226,15 @@ Color whatBlock(double x, double y, double xheading, double yheading){
     }
 }
 
+/**
+ * @brief Calculates what block the ray is intersecting given some information
+ * 
+ * @param x The x coordinate of the ray
+ * @param y  The y coordinate of the ray
+ * @param xheading The DX of the ray 
+ * @param yheading The DY of the ray 
+ * @return int This is the value of the color of the block that the ray is in
+ */
 int whatBlockNumber(double x, double y, double xheading, double yheading){
     // given some x and y coordinate return the block that the coordinate is in
     // only subtract to the non integer number
@@ -171,7 +294,6 @@ int main () {
 
     while (WindowShouldClose() == false){
         // Making sure the angle isnt greater than the threshold set
-        cout << playerX << " " << playerY << endl; 
         if (playerA > 2*3.14159){
             playerA -= 2*3.14159;
         } else if (playerA < 0){
@@ -248,41 +370,14 @@ int main () {
         BeginDrawing();
         ClearBackground(WHITE);
 
-        // if (test){
-        //         // display the grid
-        //         for (int i = 0; i < WIDTHGAME; i++){
-        //             for (int j = 0; j < HEIGHTGAME; j++){
-        //                 DrawRectangle(i*screenWidth/WIDTHGAME, j*screenHeight/HEIGHTGAME, screenWidth/WIDTHGAME, screenHeight/HEIGHTGAME, colorNum[map[j][i]]);
-        //             }
-        //         }
-
-        //         // draw gridlines
-        //         for (int i = 0; i < WIDTHGAME; i++){
-        //             DrawLine(i*screenWidth/WIDTHGAME, 0, i*screenWidth/WIDTHGAME, screenHeight, WHITE);
-        //         }
-        //         for (int i = 0; i < HEIGHTGAME; i++){
-        //             DrawLine(0, i*screenHeight/HEIGHTGAME, screenWidth, i*screenHeight/HEIGHTGAME, WHITE);
-        //         }
-
-        //         // display player
-        //         DrawCircle(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, 5, RED);
-        // }
 
         // start a for loop for each column of pixels on the screen
         int rayCount = screenWidth; // its usually screenWidth but this is for testing purposes
         for (int i = 0; i < rayCount; i++){
             // Calculate the ray angle by removing half of the FOV from the player angle and then slowly adding the FOV to the ray angle
-            count++;
             double rayAngle = playerA - fov/2.0 + fov * (double)i / (double)rayCount;
             double dY = sin(rayAngle);
             double dX = cos(rayAngle);
-
-            // Draw the dx lne 
-            bool hitWall = false;
-            double distance = 0.0;
-            double rayX = playerX;
-            double rayY = playerY;
-
             // make sure we dont divide by 0
             if (dX == 0){
                 continue; 
@@ -291,6 +386,13 @@ int main () {
                 continue; 
             }
 
+            // Draw the dx lne 
+            bool hitWall = false;
+            double distance = 0.0;
+            double rayX = playerX;
+            double rayY = playerY;
+
+            // Important variables 
             double sX = sqrt (1 + (dY*dY)/(dX*dX));
             double sY = sqrt (1 + (dX*dX)/(dY*dY));
             double rayLengthX = 0.0;
@@ -310,7 +412,6 @@ int main () {
                 xRay[0] = ceil(rayX); 
                 xRay[1] = rayY + dY/dX * abs(rayX - ceil(rayX));
             }
-
             if (dY < 0){
                 rayLengthY = sY*abs(rayY - floor(rayY));
                 // place the y on the next integer
@@ -370,8 +471,7 @@ int main () {
                 }
             }
 
-
-
+            // Check which way is shorter 
             if (rayLengthX < rayLengthY){
                 distance = rayLengthX;
                 rayX = xRay[0];
@@ -382,11 +482,14 @@ int main () {
                 rayY = yRay[1];
             }
 
+            // Correct for the fish eye effect
             distance = (distance * cos(rayAngle - playerA));
+            
             // 3d rendering
             int ceiling = ((screenHeight/2.0) - screenHeight/(distance));
             int floor = screenHeight - ceiling;
             
+            // Draw the ray for testing 
             // DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, rayX*screenWidth/WIDTHGAME, rayY*screenHeight/HEIGHTGAME, whatBlock(rayX, rayY, dX, dY));
 
             if (rayLengthX > rayLengthY){
