@@ -1,18 +1,20 @@
 #include <iostream>
 #include <cmath> 
 #include <raylib.h>
-#define WIDTHGAME 10
-#define HEIGHTGAME 10
+#define WIDTHGAME 20
+#define HEIGHTGAME 20
 #define rayStep 0.01
 #define toDegree(x) (x*180.0/3.14159)
 #define toRadian(x) (x*3.14159/180.0)
-#define brightMax -0.1
+#define brightMax 0.1
 #define brightMin -0.9
-#define gameFPS 180
+#define gameFPS 220
 #define getDecimal(x) (x - (int)x)
 #define sgn(x) (x < 0 ? -1 : 1)
-#define test 1 // if true then the program will do 2d raycasting instead of 3d
+#define test 0 // if true then the program will do 2d raycasting instead of 3d
 #define FOV toRadian(60)
+#define testCode if(test)
+
 #include "maps.h" // this is the file that contains the map and other textures 
 
 using namespace std;
@@ -20,46 +22,26 @@ using namespace std;
 const int screenWidth = 1600;
 const int screenHeight = 800;
 
+// The player's position and angle
+double playerX = 3.0;
+double playerY = 3.0;
+double playerA = toRadian(90); 
+double fov = FOV; // This is how many degrees of freedom the view has 
+
 /*TODO LIST 
 - implement a texture mapping thing
 - implement a better brightness for the walls
-- fix the fisheye lens by spreading out where the rays are shot*/
-
-
-
+- fix the fisheye lens by spreading out where the rays are shot
+*/
 
 // Calculates the brightess of a wall given the distance from the player to the wall 
-double brightness(double rayDist) {
-    if (brightMin + 1/rayDist > brightMax){
+double brightness(double rayDist, double multiplier) {
+    if (brightMin + (multiplier)*1/rayDist > brightMax){
         return brightMax;
     } else {
-        return brightMin + 1/rayDist;
+        return brightMin + (multiplier)*1/rayDist;
     }
 }
-
-// 20 by 20
-// const int map[WIDTHGAME][HEIGHTGAME] = { 
-//     {1,3,1,2,1,2,1,3,1,1,1,3,1,2,1,2,1,3,1,1},
-//     {1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2},
-//     {3,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1},
-//     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
-//     {3,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2,0,0,0,1},
-//     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-//     {1,1,1,1,1,3,1,4,1,0,0,1,1,1,1,3,1,4,1,2},
-//     {1,3,1,2,1,2,1,3,1,0,0,3,1,2,1,2,1,3,1,1},
-//     {1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0}
-// }
 
 // 0 = black, 1 = gray, 2 = red, 3 = orange, 4 = yellow, 5 = green, 6 = blue, 7 = violet, 8 = purple, 9 = pink, 10 = brown
 Color colorNum[11] = {
@@ -185,6 +167,10 @@ Color whatBlock(double x, double y, double xheading, double yheading){
     // calculate the x and y coordinate of the block that the ray is in
     int blockX = 0; 
     int blockY = 0; 
+    // check if out of bounds
+    if (x < 0 || x >= WIDTHGAME || y < 0 || y >= HEIGHTGAME){
+        return BLACK; 
+    }
     if (abs((int)x - x) < 0.0000001 && xheading > 0){
         // x is an integer 
         blockX = (int)x; 
@@ -282,46 +268,54 @@ int whatBlockNumber(double x, double y, double xheading, double yheading){
     }
 }
 
+/** 
+ * @brief This function is used to update the player's position and angle
+ * @param playerX The x coordinate of the player
+ * @param playerY The y coordinate of the player
+ * @param playerA The angle of the player
+*/
+void playerMovementUpdate(double* playerX, double* playerY, double* playerA){
+    if (*playerA > 2*PI){
+        *playerA -= 2*PI; 
+    } else if (*playerA < 0){
+        *playerA += 2*PI; 
+    }
+    if (IsKeyDown(KEY_W)){
+        *playerX += cos(*playerA) * 0.01;
+        *playerY += sin(*playerA) * 0.01; 
+    }
+    if (IsKeyDown(KEY_S)){
+        *playerX -= cos(*playerA) * 0.01;
+        *playerY -= sin(*playerA) * 0.01; 
+    }
+    if (IsKeyDown(KEY_A)){
+        // strafe
+        *playerX -= cos(*playerA + PI/2) * 0.01;
+        *playerY -= sin(*playerA + PI/2) * 0.01;
+    }
+    if (IsKeyDown(KEY_D)){
+        *playerX += cos(*playerA + PI/2) * 0.01;
+        *playerY += sin(*playerA + PI/2) * 0.01;
+    }
+    if (IsKeyDown(KEY_LEFT)){
+        *playerA -= 0.01; 
+    }
+    if (IsKeyDown(KEY_RIGHT)){
+        *playerA += 0.01; 
+    }
+    
+}
+
+
+
+// Main function 
 int main () {
-    int count = 0; // counts the iterations of the raycasting loop
-    double playerX = 3.0;
-    double playerY = 3.0;
-    double playerA = toRadian(90); 
-    double fov = FOV; // This is how many degrees of freedom the view has 
- 
     InitWindow(screenWidth, screenHeight, "Raycastuh");
     SetTargetFPS(gameFPS);
 
     while (WindowShouldClose() == false){
         // Making sure the angle isnt greater than the threshold set
-        if (playerA > 2*3.14159){
-            playerA -= 2*3.14159;
-        } else if (playerA < 0){
-            playerA += 2*3.14159;
-        }
-        // Player movement 
-        if (IsKeyDown(KEY_W)){
-            playerX += cos(playerA) * 0.01;
-            playerY += sin(playerA) * 0.01; 
-        }
-        if (IsKeyDown(KEY_S)){
-            playerX -= cos(playerA) * 0.01; 
-            playerY -= sin(playerA) * 0.01; 
-        }
-        if (IsKeyDown(KEY_A)){
-            playerX -= cos(playerA + 3.14159/2.0) * 0.01;
-            playerY -= sin(playerA + 3.14159/2.0) * 0.01;
-        }
-        if (IsKeyDown(KEY_D)){
-            playerX += cos(playerA + 3.14159/2.0) * 0.01;
-            playerY += sin(playerA + 3.14159/2.0) * 0.01;
-        }
-        if (IsKeyDown(KEY_LEFT)){
-            playerA -= 0.05; 
-        }
-        if (IsKeyDown(KEY_RIGHT)){
-            playerA += 0.05; 
-        }
+        playerMovementUpdate(&playerX, &playerY, &playerA);
 
         // fov changer
         if (IsKeyDown(KEY_UP)){
@@ -365,14 +359,12 @@ int main () {
             playerY += sin(playerA + 3.14159/2.0) * 0.01;
         }
 
-
-
+        // Draw the map
         BeginDrawing();
         ClearBackground(WHITE);
 
-
-        // start a for loop for each column of pixels on the screen
-        int rayCount = screenWidth; // its usually screenWidth but this is for testing purposes
+        // Ray casting loop behins here 
+        int rayCount = screenWidth;
         for (int i = 0; i < rayCount; i++){
             // Calculate the ray angle by removing half of the FOV from the player angle and then slowly adding the FOV to the ray angle
             double rayAngle = playerA - fov/2.0 + fov * (double)i / (double)rayCount;
@@ -400,6 +392,7 @@ int main () {
             double xRay[2] = {0.0, 0.0};
             double yRay[2] = {0.0, 0.0};
 
+            // Placing the first intersection between the x and y axises 
             if (dX < 0){
                 rayLengthX = sX*abs(rayX - floor(rayX));
                 // place the x on the next integer
@@ -425,7 +418,7 @@ int main () {
                 yRay[1] = ceil(rayY);
             }
 
-            // iterate the x and y together until we hit a wall
+            // RAY CASTING LOOP 
             while (!hitWall && dX != 0 && dY != 0){
                 // check if the x ray is shorter
                 if (rayLengthX < rayLengthY){
@@ -490,27 +483,18 @@ int main () {
             int floor = screenHeight - ceiling;
             
             // Draw the ray for testing 
-            // DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, rayX*screenWidth/WIDTHGAME, rayY*screenHeight/HEIGHTGAME, whatBlock(rayX, rayY, dX, dY));
+            testCode DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, rayX*screenWidth/WIDTHGAME, rayY*screenHeight/HEIGHTGAME, whatBlock(rayX, rayY, dX, dY));
 
-            if (rayLengthX > rayLengthY){
-                 DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, whatBlock(rayX, rayY, dX, dY));
-            } else {
-                 DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY),-0.4));
-            }
-
+            // Drawing each column for each ray 
+            DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY), brightness(distance, 3)));
             DrawRectangle(i*screenWidth/rayCount, 0, screenWidth/rayCount, ceiling, BLACK);
-            DrawRectangle(i*screenWidth/rayCount, floor, screenWidth/rayCount, screenHeight - floor, BROWN);
- 
+            DrawRectangle(i*screenWidth/rayCount, floor, screenWidth/rayCount, screenHeight - floor, ColorBrightness( GRAY, brightness(distance, 1)));
        }
+
         // Display the FPS currently 
-        DrawFPS(10, 10);
-
-        // Display the FOV 
-        DrawText(TextFormat("FOV: %f", toDegree(fov)), 10, 30, 20, WHITE);
-
+        DrawFPS(10, 10); 
         EndDrawing();
     }
-
     CloseWindow();
     return 0;
-}
+};

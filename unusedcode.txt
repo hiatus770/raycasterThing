@@ -1,4 +1,4 @@
-
+Code for displaying the player: 
         // if (test){
         //         // display the grid
         //         for (int i = 0; i < WIDTHGAME; i++){
@@ -19,5 +19,10 @@
         //         DrawCircle(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, 5, RED);
         // }
 
+Code for the old shading 
 
-code for displaying the player 
+            // if (rayLengthX > rayLengthY){
+            //      DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, whatBlock(rayX, rayY, dX, dY));
+            // } else {
+            //      DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY),-0.4));
+            // }
