@@ -1,8 +1,8 @@
 #include <iostream>
 #include <cmath> 
 #include <raylib.h>
-#define WIDTHGAME 20
-#define HEIGHTGAME 20
+#define WIDTHGAME 30
+#define HEIGHTGAME 30
 #define rayStep 0.01
 #define toDegree(x) (x*180.0/3.14159)
 #define toRadian(x) (x*3.14159/180.0)
@@ -307,7 +307,6 @@ void playerMovementUpdate(double* playerX, double* playerY, double* playerA){
 }
 
 
-
 // Main function 
 int main () {
     InitWindow(screenWidth, screenHeight, "Raycastuh");
@@ -430,11 +429,9 @@ int main () {
                     // check if the x ray is hitting a wall
                     if (map[(int)(xRay[1])][(int)(xRay[0]-1)] > 0 && dX < 0){
                         hitWall = true;
-                        distance = rayLengthX;
                         continue; 
                     } else if (map[(int)(xRay[1])][(int)(xRay[0])] > 0 && dX > 0){
                         hitWall = true;
-                        distance = rayLengthX;
                         continue; 
                     }
                     // if not then iterate the x ray
@@ -450,11 +447,9 @@ int main () {
                     // check if the y ray is hitting a wall
                     if (map[(int)yRay[1]-1][(int)yRay[0]] > 0 && dY < 0){
                         hitWall = true;
-                        distance = rayLengthY;
                         continue; 
                     } else if (map[(int)yRay[1]][(int)yRay[0]] > 0 && dY > 0){
                         hitWall = true;
-                        distance = rayLengthY;
                         continue; 
                     }
                     // if not then iterate the y ray
