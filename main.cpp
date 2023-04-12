@@ -1,9 +1,8 @@
 #include <iostream>
-#include <cmath> 
+#include <cmath>
 #include <raylib.h>
 #define WIDTHGAME 30
 #define HEIGHTGAME 30
-#define rayStep 0.01
 #define toDegree(x) (x*180.0/3.14159)
 #define toRadian(x) (x*3.14159/180.0)
 #define brightMax 0.1
@@ -12,20 +11,23 @@
 #define getDecimal(x) (x - (int)x)
 #define sgn(x) (x < 0 ? -1 : 1)
 #define test 0 // if true then the program will do 2d raycasting instead of 3d
-#define FOV toRadian(60)
+#define FOV toRadian(30)
 #define testCode if(test)
+#define columnWidth 4
+#define columnHeight 4
+
 
 #include "maps.h" // this is the file that contains the map and other textures 
 
 using namespace std;
 
-const int screenWidth = 1600;
+const int screenWidth = 800;
 const int screenHeight = 800;
 
 // The player's position and angle
 double playerX = 3.0;
 double playerY = 3.0;
-double playerA = toRadian(90); 
+double playerA = toRadian(45); 
 double fov = FOV; // This is how many degrees of freedom the view has 
 
 /*TODO LIST 
@@ -116,7 +118,7 @@ int whatY(double x, double y, double xheading, double yheading){
         blockX = (int)x; 
         for(int i = 0; i < HEIGHTGAME; i++){
             if (y >= i && y < i+1){
-                blockY = i; 
+                blockY = i;     
                 break; 
             }
         }
@@ -313,6 +315,10 @@ int main () {
     SetTargetFPS(gameFPS);
 
     while (WindowShouldClose() == false){
+        //====================================================================================================
+        //                                          Player position
+        //====================================================================================================
+
         // Making sure the angle isnt greater than the threshold set
         playerMovementUpdate(&playerX, &playerY, &playerA);
 
@@ -335,7 +341,6 @@ int main () {
         } else if (playerY > HEIGHTGAME){
             playerY = HEIGHTGAME; 
         }
-        
 
         // Do not let player go inside walls by extending a ray in front, if the ray touches then you are inside a block
         // if the ray is inside a block then move the player out of the block
@@ -348,7 +353,7 @@ int main () {
             playerX += cos(playerA) * 0.01;
             playerY += sin(playerA) * 0.01; 
         }
-        // also shoot rays to the sides 
+        // To check the player position and make sure that it doesn't go out of bounds from the game 
         if (whatBlockNumber(playerX + cos(playerA + 3.14159/2.0) * 0.1, playerY + sin(playerA + 3.14159/2.0) * 0.1, cos(playerA + 3.14159/2.0), sin(playerA + 3.14159/2.0)) != 0){
             playerX -= cos(playerA + 3.14159/2.0) * 0.01;
             playerY -= sin(playerA + 3.14159/2.0) * 0.01;
@@ -357,13 +362,16 @@ int main () {
             playerX += cos(playerA + 3.14159/2.0) * 0.01;
             playerY += sin(playerA + 3.14159/2.0) * 0.01;
         }
+        
+        //========================================================================================================
+        //                                              Raycasting
+        //========================================================================================================
 
-        // Draw the map
         BeginDrawing();
         ClearBackground(WHITE);
 
         // Ray casting loop behins here 
-        int rayCount = screenWidth;
+        int rayCount = screenWidth/columnWidth;
         for (int i = 0; i < rayCount; i++){
             // Calculate the ray angle by removing half of the FOV from the player angle and then slowly adding the FOV to the ray angle
             double rayAngle = playerA - fov/2.0 + fov * (double)i / (double)rayCount;
@@ -417,8 +425,8 @@ int main () {
                 yRay[1] = ceil(rayY);
             }
 
-            // RAY CASTING LOOP 
-            while (!hitWall && dX != 0 && dY != 0){
+            // Ray casting main loop
+            while (!hitWall){
                 // check if the x ray is shorter
                 if (rayLengthX < rayLengthY){
                     // check if the x ray is out of bounds
@@ -459,7 +467,7 @@ int main () {
                 }
             }
 
-            // Check which way is shorter 
+            // Check which one is shorter to display to the screen and calculate the position of the ray intersection 
             if (rayLengthX < rayLengthY){
                 distance = rayLengthX;
                 rayX = xRay[0];
@@ -470,22 +478,55 @@ int main () {
                 rayY = yRay[1];
             }
 
-            // Correct for the fish eye effect
+            // Fix the fisheye effect by using cosine  
             distance = (distance * cos(rayAngle - playerA));
             
-            // 3d rendering
             int ceiling = ((screenHeight/2.0) - screenHeight/(distance));
             int floor = screenHeight - ceiling;
             
             // Draw the ray for testing 
             testCode DrawLine(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, rayX*screenWidth/WIDTHGAME, rayY*screenHeight/HEIGHTGAME, whatBlock(rayX, rayY, dX, dY));
 
-            // Drawing each column for each ray 
-            DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY), brightness(distance, 3)));
-            DrawRectangle(i*screenWidth/rayCount, 0, screenWidth/rayCount, ceiling, BLACK);
-            DrawRectangle(i*screenWidth/rayCount, floor, screenWidth/rayCount, screenHeight - floor, ColorBrightness( GRAY, brightness(distance, 1)));
-       }
+            // Calculate what coordinate of the texture to use 
+            int texX =  round((rayX - std::floor(rayX))*19); 
 
+            // Loop through each pixel for the texture
+            // Only if the x coordinate is in the range of the wall
+            if (rayLengthX > rayLengthY){
+                for (int j = ceiling; j <= floor; j+=columnHeight){
+                    // Check if the pixel is in the range of the wall 
+                    // Calculate the texture coordinate 
+                    int texY =  round((j - ceiling)*20/(floor - ceiling)); 
+                    if (texX < 0 || texX > 20 || texY < 0 || texY > 20){
+                        continue;
+                    } 
+                    DrawRectangle(i*screenWidth/rayCount, j, screenWidth/rayCount, columnHeight, brick[texX][texY]);
+                    if (j+columnHeight > floor){
+                        DrawRectangle(i*screenWidth/rayCount, j+columnHeight, screenWidth/rayCount, floor - (j+columnHeight), BLACK);
+                    }
+                }
+            } else {
+                for (int j = ceiling; j <= floor; j+= columnHeight){
+                    // Check if the pixel is in the range of the wall 
+                    // Calculate the texture coordinate 
+                    texX =  round((rayY - std::floor(rayY))*19);
+                    int texY =  round((j - ceiling)*20/(floor - ceiling));
+                    // check if the texture is out of bounds
+                    if (texX < 0 || texX > 20 || texY < 0 || texY > 20){
+                        continue;
+                    } 
+                    // Draw from the last pixel to the current pixel
+                    DrawRectangle(i*screenWidth/rayCount, j, screenWidth/rayCount, columnHeight, brick[texX][texY]);
+
+                    if (j+columnHeight > floor){
+                        DrawRectangle(i*screenWidth/rayCount, j+columnHeight, screenWidth/rayCount, floor - (j+columnHeight), BLACK);
+                    }
+                }
+            }
+            // DrawRectangle(i*screenWidth/rayCount, 0, screenWidth/rayCount, ceiling, BLACK);
+            // DrawRectangle(i*screenWidth/rayCount, floor, screenWidth/rayCount, screenHeight - floor, BLACK);
+       }
+       
         // Display the FPS currently 
         DrawFPS(10, 10); 
         EndDrawing();
