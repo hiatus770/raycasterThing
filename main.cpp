@@ -13,9 +13,10 @@
 #define test 0 // if true then the program will do 2d raycasting instead of 3d
 #define FOV toRadian(30)
 #define testCode if(test)
-#define columnWidth 4
-#define columnHeight 4
-
+double columnWidth = 4;
+double columnHeight = 50;
+#define extendLength 0.2
+#define maxDistRayCast 1
 
 #include "maps.h" // this is the file that contains the map and other textures 
 
@@ -29,12 +30,6 @@ double playerX = 3.0;
 double playerY = 3.0;
 double playerA = toRadian(45); 
 double fov = FOV; // This is how many degrees of freedom the view has 
-
-/*TODO LIST 
-- implement a texture mapping thing
-- implement a better brightness for the walls
-- fix the fisheye lens by spreading out where the rays are shot
-*/
 
 // Calculates the brightess of a wall given the distance from the player to the wall 
 double brightness(double rayDist, double multiplier) {
@@ -344,14 +339,14 @@ int main () {
 
         // Do not let player go inside walls by extending a ray in front, if the ray touches then you are inside a block
         // if the ray is inside a block then move the player out of the block
-        if (whatBlockNumber(playerX + cos(playerA) * 0.1, playerY + sin(playerA) * 0.1, cos(playerA), sin(playerA)) != 0){
-            playerX -= cos(playerA) * 0.01;
-            playerY -= sin(playerA) * 0.01; 
+        if (whatBlockNumber(playerX + cos(playerA) * extendLength, playerY + sin(playerA) * extendLength, cos(playerA), sin(playerA)) != 0){
+            playerX -= cos(playerA) * 0.1;
+            playerY -= sin(playerA) * 0.1; 
         }
         // extend backwards
-        if (whatBlockNumber(playerX - cos(playerA) * 0.1, playerY - sin(playerA) * 0.1, -cos(playerA), -sin(playerA)) != 0){
-            playerX += cos(playerA) * 0.01;
-            playerY += sin(playerA) * 0.01; 
+        if (whatBlockNumber(playerX - cos(playerA) * extendLength, playerY - sin(playerA) * extendLength, -cos(playerA), -sin(playerA)) != 0){
+            playerX += cos(playerA) * 0.1;
+            playerY += sin(playerA) * 0.1; 
         }
         // To check the player position and make sure that it doesn't go out of bounds from the game 
         if (whatBlockNumber(playerX + cos(playerA + 3.14159/2.0) * 0.1, playerY + sin(playerA + 3.14159/2.0) * 0.1, cos(playerA + 3.14159/2.0), sin(playerA + 3.14159/2.0)) != 0){
@@ -366,7 +361,6 @@ int main () {
         //========================================================================================================
         //                                              Raycasting
         //========================================================================================================
-
         BeginDrawing();
         ClearBackground(WHITE);
 
@@ -425,9 +419,8 @@ int main () {
                 yRay[1] = ceil(rayY);
             }
 
-            // Ray casting main loop
+            // Ray casting loop for each ray
             while (!hitWall){
-                // check if the x ray is shorter
                 if (rayLengthX < rayLengthY){
                     // check if the x ray is out of bounds
                     if (xRay[0] < 0 || xRay[0] > WIDTHGAME || xRay[1] < 0 || xRay[1] > HEIGHTGAME){
@@ -479,7 +472,7 @@ int main () {
             }
 
             // Fix the fisheye effect by using cosine  
-            distance = (distance * cos(rayAngle - playerA));
+            distance = (distance * cos(rayAngle - playerA)) * 0.80;
             
             int ceiling = ((screenHeight/2.0) - screenHeight/(distance));
             int floor = screenHeight - ceiling;
@@ -491,18 +484,18 @@ int main () {
             int texX =  round((rayX - std::floor(rayX))*19); 
 
             // Loop through each pixel for the texture
-            // Only if the x coordinate is in the range of the wall
+            // Only if the x coordinate is in the range of the wall and dont redraw the same color again
+            Color pastColor = BLACK;
+            int pastHeight = 0; 
             if (rayLengthX > rayLengthY){
                 for (int j = ceiling; j <= floor; j+=columnHeight){
-                    // Check if the pixel is in the range of the wall 
-                    // Calculate the texture coordinate 
                     int texY =  round((j - ceiling)*20/(floor - ceiling)); 
                     if (texX < 0 || texX > 20 || texY < 0 || texY > 20){
                         continue;
-                    } 
+                    }
                     DrawRectangle(i*screenWidth/rayCount, j, screenWidth/rayCount, columnHeight, brick[texX][texY]);
-                    if (j+columnHeight > floor){
-                        DrawRectangle(i*screenWidth/rayCount, j+columnHeight, screenWidth/rayCount, floor - (j+columnHeight), BLACK);
+                    if (j+columnHeight >= floor){
+                        DrawRectangle(i*screenWidth/rayCount, j+columnHeight, screenWidth/rayCount, floor - (j+columnHeight), brick[texX][texY]);
                     }
                 }
             } else {
