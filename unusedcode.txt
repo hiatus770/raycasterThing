@@ -1,28 +1,15 @@
-Code for displaying the player: 
-        // if (test){
-        //         // display the grid
-        //         for (int i = 0; i < WIDTHGAME; i++){
-        //             for (int j = 0; j < HEIGHTGAME; j++){
-        //                 DrawRectangle(i*screenWidth/WIDTHGAME, j*screenHeight/HEIGHTGAME, screenWidth/WIDTHGAME, screenHeight/HEIGHTGAME, colorNum[map[j][i]]);
-        //             }
-        //         }
 
-        //         // draw gridlines
-        //         for (int i = 0; i < WIDTHGAME; i++){
-        //             DrawLine(i*screenWidth/WIDTHGAME, 0, i*screenWidth/WIDTHGAME, screenHeight, WHITE);
-        //         }
-        //         for (int i = 0; i < HEIGHTGAME; i++){
-        //             DrawLine(0, i*screenHeight/HEIGHTGAME, screenWidth, i*screenHeight/HEIGHTGAME, WHITE);
-        //         }
 
-        //         // display player
-        //         DrawCircle(playerX*screenWidth/WIDTHGAME, playerY*screenHeight/HEIGHTGAME, 5, RED);
-        // }
+// Old code for circle movements! 
+                            // while (b->radius + radius > length && curIter <= maxIter)
+                // {
 
-Code for the old shading 
-
-            // if (rayLengthX > rayLengthY){
-            //      DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, whatBlock(rayX, rayY, dX, dY));
-            // } else {
-            //      DrawRectangle(i*screenWidth/rayCount, ceiling, screenWidth/rayCount, floor - ceiling, ColorBrightness( whatBlock(rayX, rayY, dX, dY),-0.4));
-            // }
+                //     DrawLine(x, y, b->x, b->y, BLUE); 
+                //     curIter++;
+                //     length = sqrtf((b->x - x) * (b->x - x) + (b->y - y) * (b->y - y));
+                //     x += -(b->x - x) / 100;
+                //     y += -(b->y - y) / 100;
+                //     b->x += (b->x - x) / 100;
+                //     b->y += (b->y - y) / 100;
+                // }
+ 
