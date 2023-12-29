@@ -9,7 +9,10 @@
 		"**/*.exe": true,
 	},
 	"C_Cpp.errorSquiggles": "disabled",
-	"problems.decorations.enabled": false
+	"problems.decorations.enabled": false,
+	"files.associations": {
+		"cmath": "cpp"
+	}
 
 
 }
