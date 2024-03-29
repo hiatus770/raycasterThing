@@ -1,18 +1,17 @@
 {
-	"files.exclude": {
-		"**/.git": true,
-		"**/.svn": true,
-		"**/.hg": true,
-		"**/CVS": true,
-		"**/.DS_Store": true,
-		"**/*.o": true,
-		"**/*.exe": true,
-	},
-	"C_Cpp.errorSquiggles": "disabled",
-	"problems.decorations.enabled": false,
-	"files.associations": {
-		"cmath": "cpp"
-	}
-
-
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/*.o": true,
+    "**/*.exe": true
+  },
+  "C_Cpp.errorSquiggles": "disabled",
+  "problems.decorations.enabled": false,
+  "files.associations": {
+    "cmath": "cpp"
+  },
+  "C_Cpp_Runner.msvcBatchPath": ""
 }
